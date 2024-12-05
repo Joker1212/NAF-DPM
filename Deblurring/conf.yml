@@ -13,7 +13,7 @@ ENC_BLOCKS : [1,1,1,1]
 DEC_BLOCKS : [1,1,1,1]
 
 
-MODE : 2                 # 0 Test, 1 Train,  2 Finetune
+MODE : 0                 # 0 Test, 1 Train,  2 Finetune
 TASK: 'Deblurring'
 PRE_ORI : 'True'          # if True, predict $x_0$, else predict $/epsilon$.
 
@@ -48,12 +48,12 @@ NATIVE_RESOLUTION : 'False'               # if True, test with native resolution
 DPM_SOLVER : 'True'      # if True, test with DPM_solver
 DPM_STEP : 20             # DPM_solver step
 BATCH_SIZE_VAL : 1        # test batch size
-TEST_PATH_GT : '/mnt/media/giordano/orig' #dataset_deblurring/test_orig'         # path of ground truth
-TEST_PATH_IMG : '/mnt/media/giordano/n_10' #dataset_deblurring/test_blur'        # path of input
-TEST_INITIAL_PREDICTOR_WEIGHT_PATH : '/mnt/media/giordano/DocDiffContinueTrainingFinoA800/BEST_DISTS_model_init.pth'   # path of initial predictor
-TEST_DENOISER_WEIGHT_PATH : '/mnt/media/giordano/DocDiffContinueTrainingFinoA800/BEST_DISTS_model_denoiser.pth'            # path of denoiser
-TEST_IMG_SAVE_PATH : '/mnt/media/giordano/DocDiff_logger'          # path to save results
-LOGGER_PATH : '/mnt/media/giordano/DocDiff_logger'
+TEST_PATH_GT : './testFiles' #dataset_deblurring/test_orig'         # path of ground truth
+TEST_PATH_IMG : './testFiles' #dataset_deblurring/test_blur'        # path of input
+TEST_INITIAL_PREDICTOR_WEIGHT_PATH : './Deblurring/model/FINETUNING-BEST_CER_model_init.pth'   # path of initial predictor
+TEST_DENOISER_WEIGHT_PATH : './Deblurring/model/FINETUNING-BEST_CER_model_denoiser.pth'            # path of denoiser
+TEST_IMG_SAVE_PATH : './output'          # path to save results
+LOGGER_PATH : './log'
 
 #METRICS
 

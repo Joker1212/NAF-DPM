@@ -1,9 +1,13 @@
 import os
+
+import cv2
+
 from Deblurring.schedule.schedule import Schedule
 from Deblurring.model.NAFDPM import NAFDPM, EMA
 from Deblurring.schedule.diffusionSample import GaussianDiffusion
 from Deblurring.schedule.dpm_solver_pytorch import NoiseScheduleVP, model_wrapper, DPM_Solver
 import torch
+import numpy as np
 import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -16,7 +20,7 @@ from collections import OrderedDict
 import pyiqa
 import utils.util as util
 from utils.util import crop_concat, crop_concat_back, min_max
-import wandb
+# import wandb
 
 
 def init__result_Dir(path):
@@ -56,11 +60,11 @@ class Tester:
             dec_blk_nums    = config.DEC_BLOCKS,
             mode=0).to(self.device)
         
-        self.psnr = pyiqa.create_metric('psnr', device=self.device)
-        self.ssim = pyiqa.create_metric('ssim', device=self.device)
-        self.lpips = pyiqa.create_metric('lpips', device=self.device)
-        self.dists = pyiqa.create_metric('dists', device=self.device)
-        self.musiq = pyiqa.create_metric('musiq', device=self.device)
+        # self.psnr = pyiqa.create_metric('psnr', device=self.device)
+        # self.ssim = pyiqa.create_metric('ssim', device=self.device)
+        # self.lpips = pyiqa.create_metric('lpips', device=self.device)
+        # self.dists = pyiqa.create_metric('dists', device=self.device)
+        # self.musiq = pyiqa.create_metric('musiq', device=self.device)
         self.bestPSNR = 0
         self.bestLPIPS = 10
         self.bestDISTS = 10
@@ -95,7 +99,8 @@ class Tester:
         self.weight_save_path = config.WEIGHT_SAVE_PATH
         self.test_path_img = config.TEST_PATH_IMG
         self.test_path_gt = config.TEST_PATH_GT
-        self.save_img_path = util.init__result_Dir(self.training_path)
+        # self.save_img_path = util.init__result_Dir(self.training_path)
+        # self.save_img_path = test_img_save_path
 
         #LR ITERATIONS AND TRAINING STUFFS
         self.iteration_max = config.ITERATION_MAX
@@ -155,30 +160,15 @@ class Tester:
         
         #WANDB LOGIN AND SET UP
         self.wandb = config.WANDB
-        if self.wandb == "True":
-            wandb.login()
-            run = wandb.init(
-                # Set the project where this run will be logged
-                project=config.PROJECT,
-                # Track hyperparameters and run metadata
-                config={
-                 "Original code": False,
-                 "learning_rate": self.LR,
-                 "iterations": self.iteration_max,
-                 "Native": self.native_resolution,
-                 "DPM_Solver": self.DPM_SOLVER,
-                 "Sampling_Steps": config.TIMESTEPS
-            })
-        else:
-            self.wandb = False 
+        self.wandb = False
 
 
     def test(self):
 
         with torch.no_grad():
             #LOAD CHECKPOINTS FOR INITIAL PREDICTOR AND DENOISER
-            checkpoint_init = torch.load(self.TEST_INITIAL_PREDICTOR_WEIGHT_PATH)
-            checkpoint_denoiser = torch.load(self.TEST_DENOISER_WEIGHT_PATH)
+            checkpoint_init = torch.load(self.TEST_INITIAL_PREDICTOR_WEIGHT_PATH,map_location=self.device)
+            checkpoint_denoiser = torch.load(self.TEST_DENOISER_WEIGHT_PATH, map_location=self.device)
             self.network.init_predictor.load_state_dict(checkpoint_init['model_state_dict'])
             self.network.denoiser.load_state_dict(checkpoint_denoiser['model_state_dict'])
             #self.network.init_predictor.load_state_dict(torch.load(self.TEST_INITIAL_PREDICTOR_WEIGHT_PATH))
@@ -189,32 +179,18 @@ class Tester:
             #PUT EVERYTHING IN EVALUATION MODE
             self.network.eval()
             
-            #INIT METRICS DICTIONARY
-            test_results = OrderedDict()
-            test_results["psnr"] = []
-            test_results["ssim"] = []
-            test_results["psnr_y"] = []
-            test_results["ssim_y"] = []
-            test_results["lpips"] = []
-            test_results["dists"] = []
-            test_results["maniqa"] = []
-            test_results["musiq"] = []
-            test_results["maniqa_gt"] = []
-            test_results["musiq_gt"] = []
-            test_results["fmeasure"] = []
-            test_results["pseudof"] = []
-            test_results["drd"] = []
-            
             tq = tqdm(self.dataloader_test)
             iteration = 0
             #FOR IMAGES IN TESTING DATASET
             for img, gt, name in tq:
                 tq.set_description(f'Iteration {iteration} / {len(self.dataloader_test.dataset)}')
                 iteration += 1
+                # e_img = enhance_text_clarity(img)
+                # e_img = torch.from_numpy(e_img)
                 #IF NATIVE DIVIDE IMAGES IN SUBIMAGES
-                if self.native_resolution == 'True':
-                    temp = img
-                    img = crop_concat(img)
+                # if self.native_resolution == 'True':
+                #     temp = img
+                #     img = crop_concat(img)
                     
                 #INIT RANDOM NOISE
                 noisyImage = torch.randn_like(img).to(self.device)
@@ -229,67 +205,19 @@ class Tester:
                                              noisyImage, self.DPM_STEP, init_predict, model_kwargs={})
                 else:
                     #DDIM BRANCH
-                    sampledImgs = self.diffusion(noisyImage.cuda(), init_predict, self.pre_ori)
-                
+                    sampledImgs = self.diffusion(noisyImage, init_predict, self.pre_ori)
+
                 #COMPUTE FINAL IMAGES   
                 finalImgs = (sampledImgs + init_predict)
-                #IF NATIVE RESOLUTION RECONSTRUCT FINAL IMAGES FROM MULTIPLE SUBIMAGES
-                if self.native_resolution == 'True':
-                    finalImgs = crop_concat_back(temp, finalImgs)
-                    init_predict = crop_concat_back(temp, init_predict)
-                    sampledImgs = crop_concat_back(temp, sampledImgs)
-                    img = temp
+                # finalImgs = init_predict
+
 
                 finalImgs = torch.clamp(finalImgs,0,1)
-                img_save = torch.cat([img, gt, init_predict.cpu(), finalImgs.cpu(), min_max(sampledImgs.cpu())], dim=3)
-                if not os.path.exists(self.save_img_path):
-                        os.makedirs(self.save_img_path)
+                img_save = torch.cat([img, gt, init_predict.cpu(), finalImgs], dim=3)
+                if not os.path.exists(self.test_img_save_path):
+                        os.makedirs(self.test_img_save_path)
                 save_image(img_save, os.path.join(
-                        self.save_img_path, f"{iteration}.png"), nrow=4)
-                #img_save = torch.cat((img, gt, init_predict.cpu(), min_max(sampledImgs.cpu()), finalImgs.cpu()), dim=3)
-                #save_image(img_save, os.path.join(
-                #    self.test_img_save_path, f"{name[0]}.png"), nrow=4)
-                #save_image(img_save, os.path.join(
-                #    self.test_img_save_path, f"{name[0]}.png"), nrow=1)
-
-                                #METRIC COMPUTATION
-
-                lp_score = self.lpips(gt.to(self.device),finalImgs.to(self.device))
-                dists_score = self.dists(gt.to(self.device),finalImgs.to(self.device))
-                musiq = self.musiq(finalImgs.to(self.device)).item()
-                ssim = self.ssim(gt.to(self.device),finalImgs.to(self.device)).item()
-                psnr = self.psnr(gt.to(self.device),finalImgs.to(self.device)).item()
-
-                #METRIC LOGGING
-                test_results["psnr"].append(psnr)
-                test_results["ssim"].append(ssim)
-                test_results["lpips"].append(lp_score)
-                test_results["dists"].append(dists_score)
-                test_results["musiq"].append(musiq)
-
-
-
-            ave_lpips = sum(test_results["lpips"]) / len(test_results["lpips"])
-            ave_psnr = sum(test_results["psnr"]) / len(test_results["psnr"])
-            ave_ssim = sum(test_results["ssim"]) / len(test_results["ssim"])
-            ave_dists = sum(test_results["dists"]) / len(test_results["dists"])
-            ave_musiq = sum(test_results["musiq"]) / len(test_results["musiq"]) 
-
-
-            self.logger.info(
-                "----Average PSNR/SSIM results for {}. Iteration {} ----\n\tPSNR: {:.6f} dB; SSIM: {:.6f}\n".format(
-                "Blur dataset validation", 0, ave_psnr, ave_ssim
-            ))
-            self.logger.info( "----Average LPIPS\t: {:.6f}\n".format(ave_lpips) )
-            self.logger.info( "----Average DISTS\t: {:.6f}\n".format(ave_dists) )         
-            self.logger.info( "----Average MUSIQ\t: {:.6f}\n".format(ave_musiq) )
-
-            if self.wandb:
-                
-                wandb.log({"PSNR": ave_psnr, "SSIM": ave_ssim,
-                        "LPIPS": ave_lpips, "DISTS": ave_dists,
-                         "MUSIQ": ave_musiq})
-                wandb.finish()
+                        self.test_img_save_path, f"{iteration}.png"), nrow=3)
 
 
 def dpm_solver(betas, model, x_T, steps, condition, model_kwargs):

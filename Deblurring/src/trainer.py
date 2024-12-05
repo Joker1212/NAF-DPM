@@ -16,7 +16,6 @@ from Deblurring.src.sobel import Laplacian
 import logging
 from collections import OrderedDict
 import pyiqa
-import wandb
 
 
 class Trainer:
@@ -145,24 +144,24 @@ class Trainer:
             self.high_filter = Laplacian().to(self.device)
         
         #WANDB LOGIN AND SET UP
-        self.wandb = config.WANDB
-        if self.wandb == "True":
-            self.wandb = True
-            wandb.login()
-            run = wandb.init(
-                # Set the project where this run will be logged
-                project=config.PROJECT,
-                # Track hyperparameters and run metadata
-                config={
-                    "Original code": False,
-                    "learning_rate": self.LR,
-                    "iterations": 1000000,
-                    "Native": self.native_resolution,
-                    "DPM_Solver": self.DPM_SOLVER,
-                    "Sampling_Steps": config.TIMESTEPS
-            })
-        else:
-            self.wandb = False 
+        # self.wandb = config.WANDB
+        # if self.wandb == "True":
+        #     self.wandb = True
+        #     wandb.login()
+        #     run = wandb.init(
+        #         # Set the project where this run will be logged
+        #         project=config.PROJECT,
+        #         # Track hyperparameters and run metadata
+        #         config={
+        #             "Original code": False,
+        #             "learning_rate": self.LR,
+        #             "iterations": 1000000,
+        #             "Native": self.native_resolution,
+        #             "DPM_Solver": self.DPM_SOLVER,
+        #             "Sampling_Steps": config.TIMESTEPS
+        #     })
+        # else:
+        self.wandb = False
 
 
         self.computePSNR    =  False
@@ -177,33 +176,33 @@ class Trainer:
         if config.PSNR == 'True':
             self.computePSNR = True
             self.psnr = pyiqa.create_metric('psnr', device=self.device)
-            if self.wandb:
-                wandb.define_metric("psnr", summary="max")
+            # if self.wandb:
+            #     wandb.define_metric("psnr", summary="max")
         if config.SSIM == 'True':
             self.computeSSIM = True
             self.ssim = pyiqa.create_metric('ssim', device=self.device)
-            if self.wandb:
-                wandb.define_metric("ssim", summary="max")
+            # if self.wandb:
+            #     wandb.define_metric("ssim", summary="max")
         if config.LPIPS == 'True':
             self.computeLPIPS = True
             self.lpips = pyiqa.create_metric('lpips', device=self.device)
-            if self.wandb:
-                wandb.define_metric("lpips", summary="min")
+            # if self.wandb:
+            #     wandb.define_metric("lpips", summary="min")
         if config.DISTS == 'True':
             self.computeDISTS = True
             self.dists = pyiqa.create_metric('dists', device=self.device)
-            if self.wandb:
-                wandb.define_metric("dists", summary="min")            
+            # if self.wandb:
+            #     wandb.define_metric("dists", summary="min")
         if config.MANIQA == 'True':
             self.computeMANIQA = True
             self.maniqa = pyiqa.create_metric('maniqa', device=self.device)
-            if self.wandb:
-                wandb.define_metric("maniqa", summary="max")
+            # if self.wandb:
+                # wandb.define_metric("maniqa", summary="max")
         if config.MUSIQ == 'True' :
             self.computeMUSIQ = True
             self.musiq = pyiqa.create_metric('musiq', device=self.device)
-            if self.wandb:
-                wandb.define_metric("musiq", summary="max")
+            # if self.wandb:
+            #     wandb.define_metric("musiq", summary="max")
 
 
 
@@ -306,54 +305,54 @@ class Trainer:
             if self.computePSNR:
                 ave_psnr = sum(test_results["psnr"]) / len(test_results["psnr"])
                 self.logger.info( "----Average PSNR\t: {:.6f}\n".format(ave_psnr) )
-                if self.wandb:
-                    log_dict['psnr'] = ave_psnr
-                    
+                # if self.wandb:
+                #     log_dict['psnr'] = ave_psnr
+                #
 
             if self.computeSSIM:
                 ave_ssim = sum(test_results["ssim"]) / len(test_results["ssim"])
                 self.logger.info( "----Average SSIM\t: {:.6f}\n".format(ave_ssim) )
-                if self.wandb:
-                    log_dict['ssim'] = ave_ssim
+                # if self.wandb:
+                #     log_dict['ssim'] = ave_ssim
 
             if self.computeLPIPS:
                 ave_lpips = sum(test_results["lpips"]) / len(test_results["lpips"])
                 self.logger.info( "----Average LPIPS\t: {:.6f}\n".format(ave_lpips) )
-                if self.wandb:
-                    log_dict['lpips'] = ave_lpips
+                # if self.wandb:
+                #     log_dict['lpips'] = ave_lpips
 
             if self.computeDISTS:    
                 ave_dists = sum(test_results["dists"]) / len(test_results["dists"])
                 self.logger.info( "----Average DISTS\t: {:.6f}\n".format(ave_dists) )
-                if self.wandb:
-                    log_dict['dists'] = ave_dists
+                # if self.wandb:
+                #     log_dict['dists'] = ave_dists
 
             if self.computeMANIQA:    
                 ave_maniqa = sum(test_results["maniqa"]) / len(test_results["maniqa"])
                 self.logger.info( "----Average MANIQA\t: {:.6f}\n".format(ave_maniqa) )
-                if self.wandb:
-                    log_dict['maniq'] = ave_maniqa
+                # if self.wandb:
+                #     log_dict['maniq'] = ave_maniqa
 
             if self.computeMUSIQ:    
                 ave_musiq = sum(test_results["musiq"]) / len(test_results["musiq"]) 
                 self.logger.info( "----Average MUSIQ\t: {:.6f}\n".format(ave_musiq) )
-                if self.wandb:
-                    log_dict['musiq'] = ave_musiq
+                # if self.wandb:
+                #     log_dict['musiq'] = ave_musiq
 
             if self.computeMANIQAGT:
                 ave_maniqa_gt = sum(test_results["maniqa_gt"]) / len(test_results["maniqa_gt"])
                 self.logger.info( "----Average MANIQA_GT\t: {:.6f}\n".format(ave_maniqa_gt) ) 
-                if self.wandb:
-                    log_dict['maniq_gt'] = ave_maniqa_gt
+                # if self.wandb:
+                #     log_dict['maniq_gt'] = ave_maniqa_gt
 
             if self.computeMUSIQGT:
                 ave_musiq_gt = sum(test_results["musiq_gt"]) / len(test_results["musiq_gt"])
                 self.logger.info( "----Average MUSIQ_GT\t: {:.6f}\n".format(ave_musiq_gt) )
-                if self.wandb:
-                    log_dict['musiq_gt'] = ave_musiq_gt
+                # if self.wandb:
+                #     log_dict['musiq_gt'] = ave_musiq_gt
 
-            if self.wandb:
-                wandb.log(log_dict,step=current_iteration)
+            # if self.wandb:
+            #     wandb.log(log_dict,step=current_iteration)
 
 
 
@@ -482,8 +481,8 @@ class Trainer:
                 else:
                     tq.set_postfix(loss=loss.item(), ddpm_loss=ddpm_loss.item(), pixel_loss=pixel_loss.item())
                 if iteration % 1000 == 0:
-                    if self.wandb:
-                        wandb.log({'Loss':loss},step=iteration)
+                    # if self.wandb:
+                    #     wandb.log({'Loss':loss},step=iteration)
                     if not os.path.exists(self.save_img_path):
                         os.makedirs(self.save_img_path)
                     img_save = torch.cat([img, gt, init_predict.cpu()], dim=3)

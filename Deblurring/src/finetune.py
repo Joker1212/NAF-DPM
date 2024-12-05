@@ -16,7 +16,7 @@ from Deblurring.src.sobel import Laplacian
 import logging
 from collections import OrderedDict
 import pyiqa
-import wandb
+# import wandb
 import Deblurring.CRNN.properties as properties
 from Deblurring.CRNN.util import get_char_maps, extract_patches_with_labels, get_text_stack
 from Deblurring.CRNN.model_crnn import CRNN 
@@ -178,24 +178,24 @@ class Finetune:
         
         #WANDB LOGIN AND SET UP
         self.wandb = config.WANDB
-        if self.wandb == "True":
-            self.wandb = True
-            wandb.login()
-            run = wandb.init(
-                # Set the project where this run will be logged
-                project=config.PROJECT,
-                # Track hyperparameters and run metadata
-                config={
-                    "Original code": False,
-                    "learning_rate": self.LR,
-                    "iterations": self.iteration_max,
-                    "Native": self.native_resolution,
-                    "DPM_Solver": self.DPM_SOLVER,
-                    "Sampling_Steps": config.TIMESTEPS
-            })
-            wandb.define_metric("ctc_loss", summary="min")
-        else:
-            self.wandb = False 
+        # if self.wandb == "True":
+        #     self.wandb = True
+        #     wandb.login()
+        #     run = wandb.init(
+        #         # Set the project where this run will be logged
+        #         project=config.PROJECT,
+        #         # Track hyperparameters and run metadata
+        #         config={
+        #             "Original code": False,
+        #             "learning_rate": self.LR,
+        #             "iterations": self.iteration_max,
+        #             "Native": self.native_resolution,
+        #             "DPM_Solver": self.DPM_SOLVER,
+        #             "Sampling_Steps": config.TIMESTEPS
+        #     })
+        #     wandb.define_metric("ctc_loss", summary="min")
+        # else:
+        self.wandb = False
 
 
         self.computePSNR    =  False
@@ -207,36 +207,36 @@ class Finetune:
         self.computeMANIQAGT=  False
         self.computeMUSIQGT =  False
         #DEFINE METRICS
-        if config.PSNR == 'True':
-            self.computePSNR = True
-            self.psnr = pyiqa.create_metric('psnr', device=self.device)
-            if self.wandb:
-                wandb.define_metric("psnr", summary="max")
-        if config.SSIM == 'True':
-            self.computeSSIM = True
-            self.ssim = pyiqa.create_metric('ssim', device=self.device)
-            if self.wandb:
-                wandb.define_metric("ssim", summary="max")
-        if config.LPIPS == 'True':
-            self.computeLPIPS = True
-            self.lpips = pyiqa.create_metric('lpips', device=self.device)
-            if self.wandb:
-                wandb.define_metric("lpips", summary="min")
-        if config.DISTS == 'True':
-            self.computeDISTS = True
-            self.dists = pyiqa.create_metric('dists', device=self.device)
-            if self.wandb:
-                wandb.define_metric("dists", summary="min")            
-        if config.MANIQA == 'True':
-            self.computeMANIQA = True
-            self.maniqa = pyiqa.create_metric('maniqa', device=self.device)
-            if self.wandb:
-                wandb.define_metric("maniqa", summary="max")
-        if config.MUSIQ == 'True' :
-            self.computeMUSIQ = True
-            self.musiq = pyiqa.create_metric('musiq', device=self.device)
-            if self.wandb:
-                wandb.define_metric("musiq", summary="max")
+        # if config.PSNR == 'True':
+        #     self.computePSNR = True
+        #     self.psnr = pyiqa.create_metric('psnr', device=self.device)
+        #     if self.wandb:
+        #         wandb.define_metric("psnr", summary="max")
+        # if config.SSIM == 'True':
+        #     self.computeSSIM = True
+        #     self.ssim = pyiqa.create_metric('ssim', device=self.device)
+        #     if self.wandb:
+        #         wandb.define_metric("ssim", summary="max")
+        # if config.LPIPS == 'True':
+        #     self.computeLPIPS = True
+        #     self.lpips = pyiqa.create_metric('lpips', device=self.device)
+        #     if self.wandb:
+        #         wandb.define_metric("lpips", summary="min")
+        # if config.DISTS == 'True':
+        #     self.computeDISTS = True
+        #     self.dists = pyiqa.create_metric('dists', device=self.device)
+        #     if self.wandb:
+        #         wandb.define_metric("dists", summary="min")
+        # if config.MANIQA == 'True':
+        #     self.computeMANIQA = True
+        #     self.maniqa = pyiqa.create_metric('maniqa', device=self.device)
+        #     if self.wandb:
+        #         wandb.define_metric("maniqa", summary="max")
+        # if config.MUSIQ == 'True' :
+        #     self.computeMUSIQ = True
+        #     self.musiq = pyiqa.create_metric('musiq', device=self.device)
+        #     if self.wandb:
+        #         wandb.define_metric("musiq", summary="max")
 
 
 
@@ -387,8 +387,8 @@ class Finetune:
                 if self.wandb:
                     log_dict['musiq_gt'] = ave_musiq_gt
 
-            if self.wandb:
-                wandb.log(log_dict,step=current_iteration)
+            # if self.wandb:
+            #     wandb.log(log_dict,step=current_iteration)
 
 
 
@@ -550,12 +550,12 @@ class Finetune:
                     tq.set_postfix(loss=loss.item(),ctc=ctc_loss.item(),high_freq_ddpm_loss=ddpm_loss.item(), low_freq_pixel_loss=low_freq_loss.item(), pixel_loss=low_high_loss.item())
                 else:
                     tq.set_postfix(loss=loss.item(), ddpm_loss=ddpm_loss.item(), pixel_loss=pixel_loss.item())
-                if iteration % 100 == 0:
-                    if self.wandb:
-                        wandb.log({'ctc_loss':ctc_loss.item()}, step=iteration)
+                # if iteration % 100 == 0:
+                    # if self.wandb:
+                    #     wandb.log({'ctc_loss':ctc_loss.item()}, step=iteration)
                 if iteration % 1000 == 0:
-                    if self.wandb:
-                        wandb.log({'Loss':loss},step=iteration)
+                    # if self.wandb:
+                    #     wandb.log({'Loss':loss},step=iteration)
                         
                     if not os.path.exists(self.save_img_path):
                         os.makedirs(self.save_img_path)
